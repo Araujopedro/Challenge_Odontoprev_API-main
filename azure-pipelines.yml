@@ -1,4 +1,3 @@
-# ASP.NET
 # Build and test ASP.NET projects.
 # Add steps that publish symbols, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/apps/aspnet/build-aspnet-4
@@ -10,11 +9,21 @@ pool:
   vmImage: 'windows-latest'
 
 variables:
-  solution: '**/*.sln'
+  solution: 'Challenge_Odontoprev_API/Challenge_Odontoprev_API.csproj'  # Caminho direto para o arquivo .csproj
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
 steps:
+# Tarefa para diagnóstico - ajuda a ver a estrutura de arquivos
+- script: |
+    echo "Estrutura de diretórios:"
+    dir /s /b
+    echo "Arquivos .csproj encontrados:"
+    dir /s /b *.csproj
+    echo "Arquivos .sln encontrados:"
+    dir /s /b *.sln
+  displayName: 'Listar estrutura de arquivos'
+
 - task: NuGetToolInstaller@1
 
 - task: NuGetCommand@2
