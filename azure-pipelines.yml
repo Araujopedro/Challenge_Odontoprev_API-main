@@ -12,7 +12,8 @@ variables:
   solution: 'Challenge_Odontoprev_API/Challenge_Odontoprev_API.csproj'  # Verifique se este caminho está correto
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  webAppName: 'apidotnet-grcnceb9e4gmbudn'  # Nome exato do Web App no Azure
+  webAppName: 'Apidotnet'  # Nome correto do Web App
+  resourceGroupName: 'Api_Dotnet'  # Nome do grupo de recursos
   githubRepo: 'https://github.com/Arayopedro/Challenge_Odontoprev_API-main'
 
 steps:
@@ -51,13 +52,15 @@ steps:
     ArtifactName: 'drop'
     publishLocation: 'Container'
 
-# Adicione a tarefa de deploy após o build e teste
+# Adicione a tarefa de deploy após o build e teste para Windows
 - task: AzureRmWebAppDeployment@5
   inputs:
     ConnectionType: 'AzureRM'
     azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
     appType: 'webApp'
     WebAppName: '$(webAppName)'
-    packageForLinux: '$(build.artifactStagingDirectory)/**/*.zip'
+    ResourceGroupName: '$(resourceGroupName)'
+    deployToSlotOrASE: false
+    package: '$(build.artifactStagingDirectory)/**/*.zip'  # Alterado de packageForLinux para package
     deploymentMethod: 'auto'
     AppSettings: '-WEBSITE_TIME_ZONE "E. South America Standard Time"'
