@@ -98,10 +98,10 @@ steps:
       $webAppExists = az webapp list --query "[?name=='$(webAppName)' && resourceGroup=='$(resourceGroupName)']" -o tsv
       if (-not $webAppExists) {
           Write-Host "Criando Web App $(webAppName)..."
-          az webapp create --name $(webAppName) --resource-group $(resourceGroupName) --plan $(appServicePlanName) --runtime "DOTNET|8.0"
+          az webapp create --name $(Apidotnet) --resource-group $(RgApidotnet) --plan $(Azure for Students) --runtime "DOTNET|8.0"
           
           # Configurações adicionais para o webapp
-          az webapp config set --name $(webAppName) --resource-group $(resourceGroupName) --always-on true
+          az webapp config set --name $(Apidotnet) --resource-group $(RgApidotnet) --always-on true
           
           # Definir configurações do aplicativo
           az webapp config appsettings set --name $(webAppName) --resource-group $(resourceGroupName) --settings WEBSITE_TIME_ZONE="E. South America Standard Time"
