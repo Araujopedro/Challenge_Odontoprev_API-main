@@ -14,6 +14,9 @@ variables:
   buildConfiguration: 'Release'
   webAppName: 'Apidotnet'  # Nome correto do Web App
   resourceGroupName: 'Api_Dotnet'  # Nome do grupo de recursos
+  location: 'eastus'  # Região do Azure (mude conforme necessário)
+  appServicePlanName: 'ApiDotnetPlan'  # Nome do plano de serviço do App
+  appServicePlanSku: 'B1'  # Tamanho do plano (B1 é básico, mude conforme necessário)
   githubRepo: 'https://github.com/Arayopedro/Challenge_Odontoprev_API-main'
 
 steps:
@@ -52,8 +55,63 @@ steps:
     ArtifactName: 'drop'
     publishLocation: 'Container'
 
-# Adicione a tarefa de deploy após o build e teste para Windows
+# Criar o grupo de recursos se não existir
+- task: AzureCLI@2
+  displayName: 'Criar Grupo de Recursos se não existir'
+  inputs:
+    azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $exists = az group exists --name $(resourceGroupName)
+      if ($exists -eq 'false') {
+          Write-Host "Criando grupo de recursos $(resourceGroupName)..."
+          az group create --name $(resourceGroupName) --location $(location)
+      } else {
+          Write-Host "Grupo de recursos $(resourceGroupName) já existe."
+      }
+
+# Criar o plano de serviço do App se não existir
+- task: AzureCLI@2
+  displayName: 'Criar Plano de Serviço do App se não existir'
+  inputs:
+    azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $planExists = az appservice plan list --query "[?name=='$(appServicePlanName)' && resourceGroup=='$(resourceGroupName)']" -o tsv
+      if (-not $planExists) {
+          Write-Host "Criando plano de serviço $(appServicePlanName)..."
+          az appservice plan create --name $(appServicePlanName) --resource-group $(resourceGroupName) --sku $(appServicePlanSku)
+      } else {
+          Write-Host "Plano de serviço $(appServicePlanName) já existe."
+      }
+
+# Criar Web App se não existir
+- task: AzureCLI@2
+  displayName: 'Criar Web App se não existir'
+  inputs:
+    azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      $webAppExists = az webapp list --query "[?name=='$(webAppName)' && resourceGroup=='$(resourceGroupName)']" -o tsv
+      if (-not $webAppExists) {
+          Write-Host "Criando Web App $(webAppName)..."
+          az webapp create --name $(webAppName) --resource-group $(resourceGroupName) --plan $(appServicePlanName) --runtime "DOTNET|8.0"
+          
+          # Configurações adicionais para o webapp
+          az webapp config set --name $(webAppName) --resource-group $(resourceGroupName) --always-on true
+          
+          # Definir configurações do aplicativo
+          az webapp config appsettings set --name $(webAppName) --resource-group $(resourceGroupName) --settings WEBSITE_TIME_ZONE="E. South America Standard Time"
+      } else {
+          Write-Host "Web App $(webAppName) já existe."
+      }
+
+# Tarefa de deploy após o build e teste para Windows
 - task: AzureRmWebAppDeployment@5
+  displayName: 'Deploy do Web App'
   inputs:
     ConnectionType: 'AzureRM'
     azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
@@ -61,6 +119,17 @@ steps:
     WebAppName: '$(webAppName)'
     ResourceGroupName: '$(resourceGroupName)'
     deployToSlotOrASE: false
-    package: '$(build.artifactStagingDirectory)/**/*.zip'  # Alterado de packageForLinux para package
+    package: '$(build.artifactStagingDirectory)/**/*.zip'
     deploymentMethod: 'auto'
     AppSettings: '-WEBSITE_TIME_ZONE "E. South America Standard Time"'
+
+# Configurar o Swagger
+- task: AzureCLI@2
+  displayName: 'Configurar Swagger no Web App'
+  inputs:
+    azureSubscription: 'Azure for Students(acf1a434-8f45-4851-b284-f12fa385388f)'
+    scriptType: 'ps'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Certifique-se de que as configurações para o Swagger estejam corretas
+      az webapp config appsettings set --name $(webAppName) --resource-group $(resourceGroupName) --settings ASPNETCORE_ENVIRONMENT="Production"
